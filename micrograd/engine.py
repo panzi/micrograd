@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Sequence
 from abc import ABC, abstractmethod
 
 class Node(ABC):
@@ -71,7 +71,7 @@ class Node(ABC):
     @abstractmethod
     def _build_topo(self, visited: set['Node'], topo: list['Node']) -> None:
         ...
-    
+
     def backward(self):
         # topological order all of the children in the graph
         topo: list['Node'] = []
@@ -83,6 +83,10 @@ class Node(ABC):
         topo.reverse()
         for v in topo:
             v._backward()
+
+    @abstractmethod
+    def children(self) -> Sequence['Node']:
+        ...
 
 class Value(Node):
     """ stores a single scalar value and its gradient """
@@ -105,6 +109,9 @@ class Value(Node):
         if self not in visited:
             visited.add(self)
             topo.append(self)
+
+    def children(self) -> Sequence['Node']:
+        return ()
 
 class Add(Node):
     __slots__ = '_lhs', '_rhs'
@@ -139,6 +146,9 @@ class Add(Node):
             self._rhs._build_topo(visited, topo)
             self._lhs._build_topo(visited, topo)
             topo.append(self)
+
+    def children(self) -> Sequence['Node']:
+        return (self._lhs, self._rhs)
 
 class Mul(Node):
     __slots__ = '_lhs', '_rhs'
@@ -176,6 +186,9 @@ class Mul(Node):
             self._lhs._build_topo(visited, topo)
             topo.append(self)
 
+    def children(self) -> Sequence['Node']:
+        return (self._lhs, self._rhs)
+
 class Pow(Node):
     __slots__ = '_lhs', '_rhs'
 
@@ -209,6 +222,9 @@ class Pow(Node):
             self._lhs._build_topo(visited, topo)
             topo.append(self)
 
+    def children(self) -> Sequence['Node']:
+        return (self._lhs,)
+
 class ReLU(Node):
     __slots__ = '_arg'
 
@@ -239,3 +255,5 @@ class ReLU(Node):
             self._arg._build_topo(visited, topo)
             topo.append(self)
 
+    def children(self) -> Sequence['Node']:
+        return (self._arg,)
