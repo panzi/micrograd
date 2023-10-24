@@ -1,11 +1,12 @@
 import random
-from micrograd.engine import Value
+from micrograd.engine import Value, Node
+from typing import Generator
 
 class Module:
 
     def zero_grad(self):
         for p in self.parameters():
-            p.grad = 0
+            p.grad = 0.0
 
     def parameters(self):
         return []
@@ -14,7 +15,7 @@ class Neuron(Module):
 
     def __init__(self, nin, nonlin=True):
         self.w = [Value(random.uniform(-1,1)) for _ in range(nin)]
-        self.b = Value(0)
+        self.b = Value(0.0)
         self.nonlin = nonlin
 
     def __call__(self, x):
@@ -22,7 +23,8 @@ class Neuron(Module):
         return act.relu() if self.nonlin else act
 
     def parameters(self):
-        return self.w + [self.b]
+        yield from self.w
+        yield self.b
 
     def __repr__(self):
         return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({len(self.w)})"
@@ -37,7 +39,7 @@ class Layer(Module):
         return out[0] if len(out) == 1 else out
 
     def parameters(self):
-        return [p for n in self.neurons for p in n.parameters()]
+        return (p for n in self.neurons for p in n.parameters())
 
     def __repr__(self):
         return f"Layer of [{', '.join(str(n) for n in self.neurons)}]"
@@ -53,8 +55,8 @@ class MLP(Module):
             x = layer(x)
         return x
 
-    def parameters(self):
-        return [p for layer in self.layers for p in layer.parameters()]
+    def parameters(self) -> Generator[Node, None, None]:
+        return (p for layer in self.layers for neurons in layer.neurons for p in neurons.parameters())
 
     def __repr__(self):
         return f"MLP of [{', '.join(str(layer) for layer in self.layers)}]"
