@@ -212,11 +212,12 @@ def compile(model: MLP, scores: list[Node], total_loss: Node, inputs: Optional[l
                 nonlocals.append(g)
             else:
                 vals.append('_')
-                grads.append('_')
 
-        code.append(f'        nonlocal {", ".join(nonlocals)}\n')
+        if nonlocals:
+            code.append(f'        nonlocal {", ".join(nonlocals)}\n')
         code.append(f'        {", ".join(vals)}, = inputs\n')
-        code.append(f'        {" = ".join(grads)} = 0.0\n')
+        if grads:
+            code.append(f'        {" = ".join(grads)} = 0.0\n')
     else:
         code.append('        pass\n')
 
